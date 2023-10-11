@@ -2,7 +2,11 @@ package Config
 
 type Config struct {
 	DB struct {
-		Url string `yaml:"url"`
+		Host     string `yaml:"host"`
+		Port     string `yaml:"port"`
+		Password string `yaml:"password"`
+		User     string `yaml:"user"`
+		Database string `yaml:"database"`
 	} `yaml:"db"`
 	Redis struct {
 		Host string `yaml:"host"`

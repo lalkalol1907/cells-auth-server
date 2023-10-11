@@ -1,6 +1,8 @@
 package Models
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type AuthSession struct {
 	AccessToken  uuid.UUID `json:"accessToken"`
