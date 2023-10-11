@@ -12,9 +12,7 @@ func LoadConfig(configPath string) error {
 	if err != nil {
 		return err
 	}
-	defer func(file *os.File) {
-		err = file.Close()
-	}(file)
+	defer file.Close()
 
 	d := yaml.NewDecoder(file)
 
