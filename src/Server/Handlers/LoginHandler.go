@@ -13,18 +13,18 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		HttpTools.WriteError(w, err, 401)
+		HttpTools.WriteError(w, err, http.StatusBadRequest)
 		return
 	}
 
 	session, err := Repository.Login(data.Email, data.Password)
 	if err != nil {
-		HttpTools.WriteError(w, err, 401)
+		HttpTools.WriteError(w, err, http.StatusUnauthorized)
 		return
 	}
 
 	err = HttpTools.WriteJson(w, session)
 	if err != nil {
-		HttpTools.WriteError(w, err, 401)
+		HttpTools.WriteError(w, err, http.StatusInternalServerError)
 	}
 }
