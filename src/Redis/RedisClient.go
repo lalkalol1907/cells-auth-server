@@ -1,7 +1,7 @@
-package redis
+package Redis
 
 import (
-	"cells-auth-server/src/config"
+	"cells-auth-server/src/Config"
 	"context"
 	"github.com/redis/go-redis/v9"
 )
@@ -10,7 +10,7 @@ var RedisClient *redis.Client
 
 func InitRedis() error {
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     config.Cfg.Redis.Host + ":" + config.Cfg.Redis.Port,
+		Addr:     Config.Cfg.Redis.Host + ":" + Config.Cfg.Redis.Port,
 		Password: "",
 		DB:       0,
 	})

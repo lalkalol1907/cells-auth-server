@@ -1,19 +1,19 @@
 package main
 
 import (
-	"cells-auth-server/src/config"
-	"cells-auth-server/src/redis"
-	"cells-auth-server/src/server"
+	"cells-auth-server/src/Config"
+	"cells-auth-server/src/Redis"
+	"cells-auth-server/src/Server"
 )
 
 func main() {
-	config.LoadConfig("./config.yaml")
+	Config.LoadConfig("./config.yaml")
 
-	err := redis.InitRedis()
+	err := Redis.InitRedis()
 
 	if err != nil {
 		return
 	}
 
-	server.StartServer()
+	Server.StartServer()
 }

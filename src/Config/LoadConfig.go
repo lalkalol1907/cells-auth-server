@@ -1,4 +1,4 @@
-package config
+package Config
 
 import (
 	"gopkg.in/yaml.v2"

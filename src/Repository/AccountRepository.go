@@ -1,8 +1,8 @@
-package repository
+package Repository
 
 import (
-	"cells-auth-server/src/models"
-	"cells-auth-server/src/redis"
+	"cells-auth-server/src/Models"
+	"cells-auth-server/src/Redis"
 	"context"
 	"encoding/json"
 	"github.com/google/uuid"
@@ -12,13 +12,13 @@ func generateToken() uuid.UUID {
 	return uuid.New()
 }
 
-func Login(email uuid.UUID, password string) (*models.AuthSession, error) {
+func Login(email uuid.UUID, password string) (*Models.AuthSession, error) {
 	accessToken := generateToken()
 	refreshToken := generateToken()
 
 	userUuid := email // Костыль временный
 
-	session := &models.AuthSession{
+	session := &Models.AuthSession{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		UserUuid:     userUuid,
@@ -30,7 +30,7 @@ func Login(email uuid.UUID, password string) (*models.AuthSession, error) {
 		return nil, err
 	}
 
-	err = redis.RedisClient.HSet(context.Background(), "sessions", accessToken, string(jsonSession)).Err()
+	err = Redis.RedisClient.HSet(context.Background(), "sessions", accessToken, string(jsonSession)).Err()
 
 	if err != nil {
 		return nil, err

@@ -1,7 +1,7 @@
-package server
+package Server
 
 import (
-	"cells-auth-server/src/config"
+	"cells-auth-server/src/Config"
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -16,7 +16,7 @@ func StartServer() error {
 
 	server := &http.Server{
 		Handler: router,
-		Addr:    ":" + config.Cfg.Server.Port,
+		Addr:    ":" + Config.Cfg.Server.Port,
 	}
 
 	fmt.Print("HTTP started")
