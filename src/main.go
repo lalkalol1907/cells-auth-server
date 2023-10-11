@@ -9,7 +9,11 @@ import (
 func main() {
 	config.LoadConfig("./config.yaml")
 
-	go redis.InitRedis()
+	err := redis.InitRedis()
+
+	if err != nil {
+		return
+	}
 
 	server.StartServer()
 }
