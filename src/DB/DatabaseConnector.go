@@ -2,29 +2,28 @@ package DB
 
 import (
 	"cells-auth-server/src/Config"
-	"cells-auth-server/src/Models"
-	"fmt"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 )
 
-var DB *gorm.DB
+var DB *pgxpool.Pool
 
 func InitDatabase() error {
-	dsn := fmt.Sprintf(
-		"host=%s port=%s dbname=%s user=%s password=%s",
-		Config.Cfg.DB.Host,
-		Config.Cfg.DB.Port,
-		Config.Cfg.DB.Database,
-		Config.Cfg.DB.User,
-		Config.Cfg.DB.Password,
-	)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := pgxpool.New(ctx, Config.Cfg.DB.Url)
+
 	if err != nil {
 		return err
 	}
+
 	DB = db
 
-	return DB.AutoMigrate(Models.User{})
+	return nil
+}
+
+func CloseDatabase() {
+	DB.Close()
 }

@@ -17,7 +17,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := Repository.Login(data.Email, data.Password)
+	session, err := Repository.Login(&data)
 	if err != nil {
 		HttpTools.WriteError(w, err, http.StatusUnauthorized)
 		return

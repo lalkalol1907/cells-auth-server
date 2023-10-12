@@ -19,3 +19,7 @@ func InitRedis() error {
 
 	return err
 }
+
+func CloseRedis() error {
+	return RedisClient.Close()
+}

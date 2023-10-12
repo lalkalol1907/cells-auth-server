@@ -2,11 +2,16 @@ package Repository
 
 import (
 	"cells-auth-server/src/DB"
+	"cells-auth-server/src/DTO"
 	"cells-auth-server/src/Models"
 	"cells-auth-server/src/Redis"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -14,11 +19,10 @@ func generateToken() uuid.UUID {
 	return uuid.New()
 }
 
-func Login(email string, password string) (*Models.AuthSession, error) {
+func createSession(userUuid uuid.UUID) (*Models.AuthSession, error) {
+	fmt.Print("Вызывлся")
 	accessToken := generateToken()
 	refreshToken := generateToken()
-
-	userUuid := uuid.New() // Костыль временный
 
 	session := &Models.AuthSession{
 		AccessToken:  accessToken,
@@ -41,12 +45,72 @@ func Login(email string, password string) (*Models.AuthSession, error) {
 		return nil, err
 	}
 
-	err = DB.DB.Update("last_login", Models.User{LastLogin: time.Now()}).Error
+	DB.DB.QueryRow(context.Background(), "UPDATE users SET last_login=$1 WHERE uuid=$2", time.Now(), userUuid)
+
+	return session, nil
+}
+
+func Login(dto *DTO.LoginDto) (*Models.AuthSession, error) {
+
+	var uuid uuid.UUID
+	var password string
+
+	err := DB.DB.QueryRow(
+		context.Background(),
+		"SELECT uuid, password FROM users WHERE email=$1 LIMIT 1",
+		dto.Email,
+	).Scan(&uuid, &password)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return session, nil
+	notSuccess := bcrypt.CompareHashAndPassword([]byte(password), []byte(dto.Password))
+	if notSuccess != nil {
+		return nil, err // Тут неверный пароль
+	}
+
+	return createSession(uuid)
+}
+
+func Register(dto *DTO.RegisterDto) (*Models.AuthSession, error) {
+	err := DB.DB.QueryRow(
+		context.Background(),
+		"SELECT uuid FROM users WHERE email=$1 LIMIT 1",
+		dto.Email,
+	).Scan(nil)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	if err == nil {
+		return nil, nil
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), 10)
+	if err != nil {
+
+		return nil, err
+	}
+
+	var userUUID uuid.UUID
+
+	err = DB.DB.QueryRow(
+		context.Background(),
+		"INSERT INTO users (email, password, name, surname, nickname) VALUES ($1, $2, $3, $4, $5) RETURNING uuid;",
+		dto.Email,
+		string(hashed),
+		dto.Name,
+		dto.Surname,
+		dto.Nickname,
+	).Scan(&userUUID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return createSession(userUUID)
 }
 
 func GetUserBySession(accessToken uuid.UUID) (*Models.User, error) {
@@ -72,8 +136,11 @@ func GetUserBySession(accessToken uuid.UUID) (*Models.User, error) {
 
 	var user *Models.User
 
-	err = DB.DB.Model(&Models.User{Uuid: session.UserUuid}).Take(&user).Error
-
+	err = DB.DB.QueryRow(
+		context.Background(),
+		"SELECT * FROM users WHERE uuid=%s LIMIT 1",
+		session.UserUuid,
+	).Scan(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +187,6 @@ func UpdateSession(refreshToken uuid.UUID) (*Models.AuthSession, error) {
 		return nil, nil
 	}
 
-	accessToken := generateToken()
-	refreshToken = generateToken()
-
 	_, err = Redis.RedisClient.Del(context.Background(), "session"+session.AccessToken.String()).Result()
 	if err != nil {
 		return nil, err
@@ -133,23 +197,5 @@ func UpdateSession(refreshToken uuid.UUID) (*Models.AuthSession, error) {
 		return nil, err
 	}
 
-	session.RefreshToken = refreshToken
-	session.AccessToken = accessToken
-
-	jsonSession, err := json.Marshal(session)
-	if err != nil {
-		return nil, err
-	}
-
-	err = Redis.RedisClient.Set(context.Background(), "session:"+accessToken.String(), accessToken.String(), time.Hour*48).Err()
-	if err != nil {
-		return nil, err
-	}
-
-	err = Redis.RedisClient.HSet(context.Background(), "sessions", accessToken.String(), jsonSession).Err()
-	if err != nil {
-		return nil, err
-	}
-
-	return session, nil
+	return createSession(session.UserUuid)
 }

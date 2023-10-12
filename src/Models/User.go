@@ -6,12 +6,12 @@ import (
 )
 
 type User struct {
-	Uuid      uuid.UUID `json:"uuid" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Email     string    `json:"email" gorm:"not null"`
-	Password  string    `json:"password" gorm:"not null"`
-	Name      string    `json:"name" gorm:"not null"`
-	Surname   string    `json:"surname"`
-	Nickname  string    `json:"nickname" gorm:"not null"`
-	CreatedAt time.Time `json:"createdAt" gorm:"default:current_timestamp"`
-	LastLogin time.Time `json:"lastLogin"`
+	Uuid      uuid.UUID `json:"uuid" db:"uuid"`
+	Email     string    `json:"email" db:"email"`
+	Password  string    `json:"password" db:"password"`
+	Name      string    `json:"name" db:"name"`
+	Surname   string    `json:"surname" db:"surname"`
+	Nickname  string    `json:"nickname" db:"nickname"`
+	CreatedAt time.Time `json:"createdAt" db:"created_at"`
+	LastLogin time.Time `json:"lastLogin" db:"last_login"`
 }
