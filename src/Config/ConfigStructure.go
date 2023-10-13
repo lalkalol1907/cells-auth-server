@@ -8,7 +8,10 @@ type Config struct {
 		Host string `yaml:"host"`
 		Port string `yaml:"port"`
 	} `yaml:"redis"`
-	Server struct {
+	HttpServer struct {
 		Port string `yaml:"port"`
-	} `yaml:"server"`
+	} `yaml:"http_server"`
+	GrpcServer struct {
+		Port string `yaml:"port"`
+	} `yaml:"grpc_server"`
 }

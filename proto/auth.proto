@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package Auth;
+option go_package = "../src/gRPC";
+
+service Auth {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
+}
+
+message GetUserRequest {
+  string authToken = 1;
+}
+
+message GetUserResponse {
+    string uuid = 1;
+    string email = 2;
+    string name = 3;
+    string surname = 4;
+    string nickname = 5;
+}

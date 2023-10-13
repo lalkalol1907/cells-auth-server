@@ -61,7 +61,7 @@ func Login(dto *DTO.LoginDto) (*Models.AuthSession, error) {
 		dto.Email,
 	).Scan(&uuid, &password)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
+		return nil, errors.New("user doesn't exist")
 	}
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func Login(dto *DTO.LoginDto) (*Models.AuthSession, error) {
 
 	notSuccess := bcrypt.CompareHashAndPassword([]byte(password), []byte(dto.Password))
 	if notSuccess != nil {
-		return nil, err // Тут неверный пароль
+		return nil, errors.New("incorrect password")
 	}
 
 	return createSession(uuid)
@@ -85,7 +85,7 @@ func Register(dto *DTO.RegisterDto) (*Models.AuthSession, error) {
 		return nil, err
 	}
 	if err == nil {
-		return nil, nil
+		return nil, errors.New("user already exists")
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), 10)
@@ -134,17 +134,19 @@ func GetUserBySession(accessToken uuid.UUID) (*Models.User, error) {
 		return nil, err
 	}
 
-	var user *Models.User
-
-	err = DB.DB.QueryRow(
+	rows, err := DB.DB.Query(
 		context.Background(),
-		"SELECT * FROM users WHERE uuid=%s LIMIT 1",
+		"SELECT * FROM users WHERE uuid=$1 LIMIT 1",
 		session.UserUuid,
-	).Scan(&user)
+	)
 	if err != nil {
 		return nil, err
 	}
 
+	user, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[Models.User])
+	if err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 

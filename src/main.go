@@ -5,6 +5,7 @@ import (
 	"cells-auth-server/src/DB"
 	"cells-auth-server/src/Redis"
 	"cells-auth-server/src/Server"
+	"cells-auth-server/src/gRPC"
 	"fmt"
 )
 
@@ -29,5 +30,7 @@ func main() {
 		return
 	}
 
-	Server.StartServer()
+	go gRPC.InitServer()
+
+	Server.InitServer()
 }

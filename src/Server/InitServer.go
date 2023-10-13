@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func StartServer() error {
+func InitServer() error {
 	router := mux.NewRouter()
 
 	apiRouter := router.PathPrefix("/api/").Subrouter()
@@ -16,7 +16,7 @@ func StartServer() error {
 
 	server := &http.Server{
 		Handler: router,
-		Addr:    ":" + Config.Cfg.Server.Port,
+		Addr:    ":" + Config.Cfg.HttpServer.Port,
 	}
 
 	fmt.Print("HTTP started")
