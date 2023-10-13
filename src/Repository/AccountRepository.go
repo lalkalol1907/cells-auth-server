@@ -2,16 +2,12 @@ package Repository
 
 import (
 	"cells-auth-server/src/DB"
-	"cells-auth-server/src/DTO"
 	"cells-auth-server/src/Models"
 	"cells-auth-server/src/Redis"
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -19,8 +15,7 @@ func generateToken() uuid.UUID {
 	return uuid.New()
 }
 
-func createSession(userUuid uuid.UUID) (*Models.AuthSession, error) {
-	fmt.Print("Вызывлся")
+func CreateSession(userUuid uuid.UUID) (*Models.AuthSession, error) {
 	accessToken := generateToken()
 	refreshToken := generateToken()
 
@@ -50,76 +45,38 @@ func createSession(userUuid uuid.UUID) (*Models.AuthSession, error) {
 	return session, nil
 }
 
-func Login(dto *DTO.LoginDto) (*Models.AuthSession, error) {
-
-	var uuid uuid.UUID
+func GetUserByEmail(email string) (uuid.UUID, string, error) {
+	var userUuid uuid.UUID
 	var password string
 
 	err := DB.DB.QueryRow(
 		context.Background(),
 		"SELECT uuid, password FROM users WHERE email=$1 LIMIT 1",
-		dto.Email,
-	).Scan(&uuid, &password)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, errors.New("user doesn't exist")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	notSuccess := bcrypt.CompareHashAndPassword([]byte(password), []byte(dto.Password))
-	if notSuccess != nil {
-		return nil, errors.New("incorrect password")
-	}
-
-	return createSession(uuid)
+		email,
+	).Scan(&userUuid, &password)
+	return userUuid, password, err
 }
 
-func Register(dto *DTO.RegisterDto) (*Models.AuthSession, error) {
-	err := DB.DB.QueryRow(
-		context.Background(),
-		"SELECT uuid FROM users WHERE email=$1 LIMIT 1",
-		dto.Email,
-	).Scan(nil)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return nil, err
-	}
-	if err == nil {
-		return nil, errors.New("user already exists")
-	}
-
-	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), 10)
-	if err != nil {
-
-		return nil, err
-	}
-
+func CreateUser(email string, password string, name string, surname string, nickname string) (uuid.UUID, error) {
 	var userUUID uuid.UUID
 
-	err = DB.DB.QueryRow(
+	err := DB.DB.QueryRow(
 		context.Background(),
 		"INSERT INTO users (email, password, name, surname, nickname) VALUES ($1, $2, $3, $4, $5) RETURNING uuid;",
-		dto.Email,
-		string(hashed),
-		dto.Name,
-		dto.Surname,
-		dto.Nickname,
+		email,
+		password,
+		name,
+		surname,
+		nickname,
 	).Scan(&userUUID)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return createSession(userUUID)
+	return userUUID, err
 }
 
 func GetUserBySession(accessToken uuid.UUID) (*Models.User, error) {
-	sessionExists, err := Redis.RedisClient.Get(context.Background(), "session:"+accessToken.String()).Result()
+	_, err := Redis.RedisClient.Get(context.Background(), "session:"+accessToken.String()).Result()
 	if err != nil {
 		return nil, err
-	}
-	if sessionExists == "" {
-		return nil, nil
 	}
 
 	useString, err := Redis.RedisClient.HGet(context.Background(), "sessions", accessToken.String()).Result()
@@ -170,34 +127,16 @@ func GetAllSessions() ([]*Models.AuthSession, error) {
 	return authSessions, nil
 }
 
-func UpdateSession(refreshToken uuid.UUID) (*Models.AuthSession, error) {
-	sessions, err := GetAllSessions()
+func DeleteSession(accessToken uuid.UUID) error {
+	_, err := Redis.RedisClient.Del(context.Background(), "session"+accessToken.String()).Result()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var session *Models.AuthSession
-
-	for _, e := range sessions {
-		if e.RefreshToken == refreshToken {
-			session = e
-			break
-		}
-	}
-
-	if session == nil {
-		return nil, nil
-	}
-
-	_, err = Redis.RedisClient.Del(context.Background(), "session"+session.AccessToken.String()).Result()
+	_, err = Redis.RedisClient.HDel(context.Background(), "sessions", accessToken.String()).Result()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	_, err = Redis.RedisClient.HDel(context.Background(), "sessions", session.AccessToken.String()).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	return createSession(session.UserUuid)
+	return nil
 }

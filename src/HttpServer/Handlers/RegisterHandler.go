@@ -5,6 +5,9 @@ import (
 	"cells-auth-server/src/HttpServer/HttpTools"
 	"cells-auth-server/src/Repository"
 	"encoding/json"
+	"errors"
+	"github.com/jackc/pgx/v5"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -17,9 +20,31 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := Repository.Register(&data)
+	_, _, err = Repository.GetUserByEmail(data.Email)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		HttpTools.WriteError(w, err, http.StatusInternalServerError)
+		return
+	}
+	if err == nil {
+		HttpTools.WriteError(w, errors.New("user already exists"), http.StatusInternalServerError)
+		return
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(data.Password), 10)
 	if err != nil {
-		HttpTools.WriteError(w, err, http.StatusUnauthorized)
+		HttpTools.WriteError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	userUuid, err := Repository.CreateUser(data.Email, string(hashed), data.Name, data.Surname, data.Nickname)
+	if err != nil {
+		HttpTools.WriteError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	session, err := Repository.CreateSession(userUuid)
+	if err != nil {
+		HttpTools.WriteError(w, err, http.StatusInternalServerError)
 		return
 	}
 
