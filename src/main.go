@@ -3,34 +3,43 @@ package main
 import (
 	"cells-auth-server/src/Config"
 	"cells-auth-server/src/DB"
+	"cells-auth-server/src/HttpServer"
 	"cells-auth-server/src/Redis"
-	"cells-auth-server/src/Server"
-	"cells-auth-server/src/gRPC"
-	"fmt"
+	"cells-auth-server/src/gRPCServer"
 )
 
 func main() {
-	Config.LoadConfig("./config.yaml")
+	err := Config.LoadConfig("./config.yaml")
+	if err != nil {
+		panic(err)
+	}
 
-	err := Redis.InitRedis()
+	err = Redis.InitRedis()
 	defer func() {
 		err := Redis.CloseRedis()
 		if err != nil {
-			print(err)
+			panic(err)
 		}
 	}()
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	err = DB.InitDatabase()
-	//defer DB.CloseDatabase()
+	defer DB.CloseDatabase()
 	if err != nil {
-		fmt.Print(err)
-		return
+		panic(err)
 	}
 
-	go gRPC.InitServer()
+	go func() {
+		err := gRPCServer.InitServer()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
-	Server.InitServer()
+	err = HttpServer.InitServer()
+	if err != nil {
+		panic(err)
+	}
 }

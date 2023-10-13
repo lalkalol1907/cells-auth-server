@@ -1,4 +1,4 @@
-package Server
+package HttpServer
 
 import (
 	"cells-auth-server/src/Config"

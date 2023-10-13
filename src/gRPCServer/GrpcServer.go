@@ -1,16 +1,17 @@
-package gRPC
+package gRPCServer
 
 import (
 	"cells-auth-server/src/Repository"
+	"cells-auth-server/src/gRPCServer/proto"
 	"context"
 	"github.com/google/uuid"
 )
 
 type GrpcServer struct {
-	UnimplementedAuthServer
+	proto.UnimplementedAuthServer
 }
 
-func (s *GrpcServer) GetUser(ctx context.Context, in *GetUserRequest) (*GetUserResponse, error) {
+func (s *GrpcServer) GetUser(ctx context.Context, in *proto.GetUserRequest) (*proto.GetUserResponse, error) {
 	userUuid, err := uuid.Parse(in.AuthToken)
 	if err != nil {
 		return nil, err
@@ -21,7 +22,7 @@ func (s *GrpcServer) GetUser(ctx context.Context, in *GetUserRequest) (*GetUserR
 		return nil, err
 	}
 
-	return &GetUserResponse{
+	return &proto.GetUserResponse{
 		Uuid:     user.Uuid.String(),
 		Email:    user.Email,
 		Name:     user.Name,

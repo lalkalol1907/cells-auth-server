@@ -4,7 +4,7 @@
 // - protoc             v4.24.4
 // source: auth.proto
 
-package gRPC
+package proto
 
 import (
 	context "context"

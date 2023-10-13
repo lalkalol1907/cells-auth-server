@@ -1,7 +1,7 @@
-package Server
+package HttpServer
 
 import (
-	"cells-auth-server/src/Server/Handlers"
+	"cells-auth-server/src/HttpServer/Handlers"
 	"github.com/gorilla/mux"
 	"net/http"
 )

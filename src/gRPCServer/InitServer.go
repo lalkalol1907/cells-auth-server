@@ -1,8 +1,9 @@
-package gRPC
+package gRPCServer
 
 import (
 	"cells-auth-server/src/Config"
-	googleRPC "google.golang.org/grpc"
+	"cells-auth-server/src/gRPCServer/proto"
+	"google.golang.org/grpc"
 	"net"
 )
 
@@ -12,8 +13,8 @@ func InitServer() error {
 		return err
 	}
 
-	s := googleRPC.NewServer()
-	RegisterAuthServer(s, &GrpcServer{})
+	s := grpc.NewServer()
+	proto.RegisterAuthServer(s, &GrpcServer{})
 	if err := s.Serve(listener); err != nil {
 		return err
 	}

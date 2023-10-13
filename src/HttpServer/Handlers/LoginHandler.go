@@ -2,8 +2,8 @@ package Handlers
 
 import (
 	"cells-auth-server/src/DTO"
+	"cells-auth-server/src/HttpServer/HttpTools"
 	"cells-auth-server/src/Repository"
-	"cells-auth-server/src/Server/HttpTools"
 	"encoding/json"
 	"net/http"
 )
