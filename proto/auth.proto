@@ -2,9 +2,6 @@ syntax = "proto3";
 
 package Auth;
 option go_package = "../src/gRPCServer/proto";
-option java_package = "com.lalkalol.cellsdataserver.AuthGrpc";
-option java_generic_services = true;
-option java_multiple_files = true;
 
 service Auth {
   rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
