@@ -1,6 +1,7 @@
 package Repository
 
 import (
+	"cells-auth-server/src/CustomErrors"
 	"cells-auth-server/src/DB"
 	"cells-auth-server/src/Models"
 	"cells-auth-server/src/Redis"
@@ -8,11 +9,12 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/redis/go-redis/v9"
 	"time"
 )
 
-func generateToken() uuid.UUID {
-	return uuid.New()
+func generateToken() string {
+	return uuid.New().String()
 }
 
 func CreateSession(userUuid uuid.UUID) (*Models.AuthSession, error) {
@@ -30,12 +32,12 @@ func CreateSession(userUuid uuid.UUID) (*Models.AuthSession, error) {
 		return nil, err
 	}
 
-	err = Redis.RedisClient.Set(context.Background(), "session:"+accessToken.String(), accessToken.String(), time.Hour*48).Err()
+	err = Redis.RedisClient.Set(context.Background(), "session:"+accessToken, accessToken, time.Hour*48).Err()
 	if err != nil {
 		return nil, err
 	}
 
-	err = Redis.RedisClient.HSet(context.Background(), "sessions", accessToken.String(), jsonSession).Err()
+	err = Redis.RedisClient.HSet(context.Background(), "sessions", accessToken, jsonSession).Err()
 	if err != nil {
 		return nil, err
 	}
@@ -74,14 +76,17 @@ func CreateUser(email string, password string, name string, surname string, nick
 }
 
 func GetUserBySession(accessToken uuid.UUID) (*Models.User, error) {
-	_, err := Redis.RedisClient.Get(context.Background(), "session:"+accessToken.String()).Result()
+	useString, err := Redis.RedisClient.HGet(context.Background(), "sessions", accessToken.String()).Result()
+	if err == redis.Nil {
+		return nil, CustomErrors.NoSession
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	useString, err := Redis.RedisClient.HGet(context.Background(), "sessions", accessToken.String()).Result()
-	if err != nil {
-		return nil, err
+	_, err = Redis.RedisClient.Get(context.Background(), "session:"+accessToken.String()).Result()
+	if err == redis.Nil {
+		return nil, CustomErrors.NeedRefreshError
 	}
 
 	var session *Models.AuthSession
@@ -127,13 +132,13 @@ func GetAllSessions() ([]*Models.AuthSession, error) {
 	return authSessions, nil
 }
 
-func DeleteSession(accessToken uuid.UUID) error {
-	_, err := Redis.RedisClient.Del(context.Background(), "session"+accessToken.String()).Result()
+func DeleteSession(accessToken string) error {
+	_, err := Redis.RedisClient.Del(context.Background(), "session"+accessToken).Result()
 	if err != nil {
 		return err
 	}
 
-	_, err = Redis.RedisClient.HDel(context.Background(), "sessions", accessToken.String()).Result()
+	_, err = Redis.RedisClient.HDel(context.Background(), "sessions", accessToken).Result()
 	if err != nil {
 		return err
 	}

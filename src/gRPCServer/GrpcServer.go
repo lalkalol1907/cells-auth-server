@@ -1,9 +1,12 @@
 package gRPCServer
 
 import (
+	"cells-auth-server/src/CustomErrors"
 	"cells-auth-server/src/Repository"
 	"cells-auth-server/src/gRPCServer/proto"
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/google/uuid"
 )
 
@@ -18,15 +21,44 @@ func (s *GrpcServer) GetUser(ctx context.Context, in *proto.GetUserRequest) (*pr
 	}
 
 	user, err := Repository.GetUserBySession(userUuid)
+	if errors.Is(err, CustomErrors.NoSession) {
+		e := "No session"
+		return &proto.GetUserResponse{
+			AuthOK:      false,
+			Error:       &e,
+			NeedRefresh: false,
+		}, nil
+	}
+	if errors.Is(err, CustomErrors.NeedRefreshError) {
+		return &proto.GetUserResponse{
+			AuthOK:      false,
+			NeedRefresh: true,
+		}, nil
+	}
 	if err != nil {
-		return nil, err
+		e := err.Error()
+		return &proto.GetUserResponse{
+			AuthOK:      false,
+			Error:       &e,
+			NeedRefresh: false,
+		}, nil
 	}
 
+	userRes, err := json.Marshal(user)
+	if err != nil {
+		e := err.Error()
+		return &proto.GetUserResponse{
+			AuthOK:      false,
+			Error:       &e,
+			NeedRefresh: false,
+		}, nil
+	}
+
+	u := string(userRes)
+
 	return &proto.GetUserResponse{
-		Uuid:     user.Uuid.String(),
-		Email:    user.Email,
-		Name:     user.Name,
-		Surname:  user.Surname,
-		Nickname: user.Nickname,
+		AuthOK:      true,
+		NeedRefresh: false,
+		User:        &u,
 	}, nil
 }

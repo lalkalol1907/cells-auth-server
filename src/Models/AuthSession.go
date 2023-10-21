@@ -5,7 +5,7 @@ import (
 )
 
 type AuthSession struct {
-	AccessToken  uuid.UUID `json:"accessToken"`
-	RefreshToken uuid.UUID `json:"refreshToken"`
+	AccessToken  string    `json:"accessToken"`
+	RefreshToken string    `json:"refreshToken"`
 	UserUuid     uuid.UUID `json:"userUuid"`
 }
